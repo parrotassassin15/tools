@@ -5,7 +5,7 @@ local colors = {
     reset = "\27[0m",
     red = "\27[31m",
     green = "\27[32m",
-    blue = "\27[34m",
+    blue = "\27[94m",
     yellow = "\27[33m"
 }
 
