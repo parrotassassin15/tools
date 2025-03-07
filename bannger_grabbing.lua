@@ -18,10 +18,10 @@ local function read_ips(filename)
     return ips
 end
 
--- Function to grab banners
+-- Function to grab banners with improved timeout handling
 local function grab_banner(ip, port)
     local sock = socket.tcp()
-    sock:settimeout(5)  -- Increased timeout
+    sock:settimeout(5)  -- Allow 5 seconds (same as Netcat)
 
     print(string.format("Connecting to %s:%d...", ip, port))
     local success, err = sock:connect(ip, port)
@@ -30,19 +30,25 @@ local function grab_banner(ip, port)
         return nil
     end
 
-    -- Allow time for server to send banner
-    print(string.format("[INFO] Connected to %s:%d, waiting for response...", ip, port))
-    socket.sleep(2)  -- Wait 2 seconds before trying to read
+    -- Wait 2.5 seconds before reading (since we saw Netcat takes ~2.1s)
+    print(string.format("[INFO] Connected to %s:%d, waiting for banner...", ip, port))
+    socket.sleep(2.5)
 
-    -- Attempt to receive banner
-    local banner, recv_err = sock:receive(1024)
+    -- Read data incrementally, like Netcat
+    local banner = ""
+    while true do
+        local chunk, recv_err = sock:receive(1)  -- Read byte-by-byte
+        if not chunk then break end
+        banner = banner .. chunk
+    end
+
     sock:close()
 
-    if banner then
+    if banner ~= "" then
         print(string.format("[SUCCESS] Banner received from %s:%d -> %s", ip, port, banner))
-        return banner:gsub("[\r\n]", "")  -- Clean output
+        return banner:gsub("[\r\n]", "")
     else
-        print(string.format("[INFO] No banner from %s:%d, error: %s", ip, port, recv_err or "None"))
+        print(string.format("[INFO] No banner from %s:%d", ip, port))
         return "No response"
     end
 end
