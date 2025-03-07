@@ -23,22 +23,26 @@ local function grab_banner(ip, port)
     local sock = socket.tcp()
     sock:settimeout(5)  -- Increased timeout
 
+    print(string.format("Connecting to %s:%d...", ip, port))
     local success, err = sock:connect(ip, port)
     if not success then
-        print(string.format("[%s:%d] Connection failed: %s", ip, port, err))
+        print(string.format("[ERROR] Connection failed: %s", err))
         return nil
     end
 
-    -- Allow time for the server to send a banner
-    socket.sleep(1.5)  -- Wait 1.5 seconds before trying to read
+    -- Allow time for server to send banner
+    print(string.format("[INFO] Connected to %s:%d, waiting for response...", ip, port))
+    socket.sleep(2)  -- Wait 2 seconds before trying to read
 
     -- Attempt to receive banner
     local banner, recv_err = sock:receive(1024)
     sock:close()
 
     if banner then
-        return banner:gsub("[\r\n]", "")  -- Clean newlines
+        print(string.format("[SUCCESS] Banner received from %s:%d -> %s", ip, port, banner))
+        return banner:gsub("[\r\n]", "")  -- Clean output
     else
+        print(string.format("[INFO] No banner from %s:%d, error: %s", ip, port, recv_err or "None"))
         return "No response"
     end
 end
@@ -51,11 +55,9 @@ if #ips == 0 then
 end
 
 for _, ip in ipairs(ips) do
+    print("\n=============================")
     print("Scanning: " .. ip)
     for _, port in ipairs(ports) do
-        local banner = grab_banner(ip, port)
-        if banner then
-            print(string.format("[+] %s:%d -> %s", ip, port, banner))
-        end
+        grab_banner(ip, port)
     end
 end
