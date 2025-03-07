@@ -18,10 +18,10 @@ local function read_ips(filename)
     return ips
 end
 
--- Function to grab banners with protocol-specific probes
+-- Function to grab banners
 local function grab_banner(ip, port)
     local sock = socket.tcp()
-    sock:settimeout(5) -- Increased timeout
+    sock:settimeout(5)  -- Increased timeout
 
     local success, err = sock:connect(ip, port)
     if not success then
@@ -29,30 +29,10 @@ local function grab_banner(ip, port)
         return nil
     end
 
-    -- Send protocol-specific probes
-    local probes = {
-        [22] = "\r\n",  -- SSH (usually responds with version info)
-        [23] = "\r\n",  -- Telnet
-        [80] = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n", -- HTTP
-        [443] = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n", -- HTTPS (though SSL handshake is needed)
-        [5900] = "\r\n",  -- VNC
-        [9100] = "\r\n",  -- JetDirect printer
-        [8003] = "\r\n",  -- Custom service
-        [111] = "\r\n",  -- RPC
-        [904] = "\r\n",  -- Misc ports
-        [1010] = "\r\n",
-        [9000] = "\r\n",
-        [623] = "\r\n",
-    }
+    -- Allow time for the server to send a banner
+    socket.sleep(1.5)  -- Wait 1.5 seconds before trying to read
 
-    -- Send probe if available
-    if probes[port] then
-        sock:send(probes[port])
-    else
-        sock:send("\r\n")  -- Default probe
-    end
-
-    -- Receive banner
+    -- Attempt to receive banner
     local banner, recv_err = sock:receive(1024)
     sock:close()
 
